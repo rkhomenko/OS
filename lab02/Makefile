@@ -4,6 +4,14 @@ BINARY=$(LAB01_BUILD_DIR)/lab01
 
 CFLAGS=-c -std=c99 -Wall -Wextra -pedantic-errors -I$(INCLUDE_DIR)
 
+ifeq ($(BUILD_TYPE), release)
+	CFLAGS:=$(CFLAGS) -O2
+endif
+
+ifeq ($(BUILD_TYPE), debug)
+	CFLAGS:=$(CFLAGS) -ggdb3 -O1
+endif
+
 SOURCES=src/main.c src/vector.c
 OBJECTS=$(patsubst src/%.c, $(LAB01_BUILD_DIR)/%.o,$(SOURCES))
 

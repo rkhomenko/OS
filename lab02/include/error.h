@@ -9,7 +9,7 @@ void log_error_msg(const char* file,
                    int exit_code);
 
 enum {
-    ERRNO_NOT_SET = 4096
+    ERRNO_NOT_SET = 512
 };
 
 #define LOG_ERROR_ERRNO() \

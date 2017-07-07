@@ -1,6 +1,7 @@
+#include <vector.h>
+
 #include <stdlib.h>
 #include <string.h>
-#include <vector.h>
 
 static vec_t* vec_resize(vec_t* vec, size_t new_size) {
     vec->data = realloc(vec->data, vec->elem_size * new_size);

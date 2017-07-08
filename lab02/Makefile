@@ -1,6 +1,6 @@
-LAB01_BUILD_DIR=$(BUILD_DIR)/lab01
+LAB01_BUILD_DIR=$(BUILD_DIR)/lab02
 INCLUDE_DIR=./include
-BINARY=$(LAB01_BUILD_DIR)/lab01
+BINARY=$(LAB01_BUILD_DIR)/lab02
 
 CFLAGS=-c -std=c99 -Wall -Wextra -pedantic-errors -I$(INCLUDE_DIR)
 
@@ -28,4 +28,7 @@ dir:
 clean:
 	@rm -f $(OBJECTS) $(BINARY)
 
-.PHONY: clean
+test: $(BINARY)
+	@bash ./run_tests.sh $(BINARY)
+
+.PHONY: clean tests

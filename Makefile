@@ -9,4 +9,8 @@ clean:
 	@$(foreach dir, $(DIRS), \
 		make BUILD_DIR=$(BUILD_DIR) --directory=$(dir) clean)
 
-.PHONY: all clean
+test:
+	@$(foreach dir, $(DIRS), \
+		make BUILD_DIR=$(BUILD_DIR) --directory=$(dir) test)
+
+.PHONY: all clean tests

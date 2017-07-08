@@ -38,6 +38,8 @@ void* vec_move_data(vec_t* vec);
 
 #define VEC_SIZE(vec) \
     ((vec)->size)
+#define VEC_DATA(vec) \
+    ((vec)->data)
 
 #define VEC_I_PTR(vec, i, type) \
     ((type)(((uint8_t*)(vec)->data) + (i) * (vec)->elem_size))

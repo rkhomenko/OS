@@ -12,7 +12,8 @@ ifeq ($(BUILD_TYPE), debug)
 	CFLAGS:=$(CFLAGS) -ggdb3 -O1
 endif
 
-SOURCES=src/main.c src/vector.c
+SOURCES=src/main.c src/vector.c src/file.c \
+		src/error.c
 OBJECTS=$(patsubst src/%.c, $(LAB01_BUILD_DIR)/%.o,$(SOURCES))
 
 $(BINARY): dir $(OBJECTS)

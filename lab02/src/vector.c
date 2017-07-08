@@ -84,7 +84,7 @@ void vec_push_back(vec_t* vec, void* elem) {
     uint8_t* ptr = NULL;
 
     if (vec->size == vec->capacity) {
-        vec_resize(vec, vec->capacity + 3);
+        vec_resize(vec, vec->capacity + 64);
     }
 
     switch (vec->elem_type) {

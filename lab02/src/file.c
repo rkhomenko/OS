@@ -23,11 +23,5 @@ void file_close(int fd) {
 }
 
 ssize_t file_read(int fd, void* buffer, size_t count) {
-    ssize_t bytes = read(fd, buffer, count);
-
-    if (bytes != (ssize_t)count) {
-        LOG_ERROR_ERRNO();
-    }
-
-    return bytes;
+    return read(fd, buffer, count);
 }

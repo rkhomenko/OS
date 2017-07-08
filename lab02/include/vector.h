@@ -34,6 +34,8 @@ void vec_destroy(vec_t* vec);
 
 void vec_push_back(vec_t* vec, void* elem);
 
+void* vec_move_data(vec_t* vec);
+
 #define VEC_SIZE(vec) \
     ((vec)->size)
 

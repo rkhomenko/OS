@@ -65,6 +65,11 @@ void vec_destroy(vec_t* vec) {
         return;
     }
 
+    if (vec->data == NULL) {
+        free(vec);
+        return;
+    }
+
     switch (vec->elem_type) {
         case VEC_ELEM_TYPE_VAL:
             break;
@@ -74,7 +79,6 @@ void vec_destroy(vec_t* vec) {
             }
             break;
     }
-
 
     free(vec->data);
     free(vec);
@@ -101,4 +105,13 @@ void vec_push_back(vec_t* vec, void* elem) {
             break;
     }
     vec->size++;
+}
+
+void* vec_move_data(vec_t* vec) {
+    void* ret = vec->data;
+
+    vec->size = vec->capacity = 0;
+    vec->data = NULL;
+
+    return ret;
 }

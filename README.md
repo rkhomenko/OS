@@ -75,7 +75,7 @@ make BUILD_DIR=/absolute/path/to/build/dir clean
 make BUILD_DIR=/absolute/path/to/build/dir test
 ```
 
-##Отчеты
+## Отчеты
 При наличии пакета texlive отчеты можно собрать командой
 ```bash
 make BUILD_DIR=/absolute/path/to/build/dir report

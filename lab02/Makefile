@@ -27,8 +27,12 @@ dir:
 
 clean:
 	@rm -f $(OBJECTS) $(BINARY)
+	make BUILD_DIR=$(BUILD_DIR) --directory=report clean
 
 test: $(BINARY)
 	@bash ./run_tests.sh $(BINARY)
 
-.PHONY: clean tests
+report:
+	make BUILD_DIR=$(BUILD_DIR) --directory=report
+
+.PHONY: clean test report

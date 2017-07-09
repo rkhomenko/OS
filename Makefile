@@ -13,4 +13,8 @@ test:
 	@$(foreach dir, $(DIRS), \
 		make BUILD_DIR=$(BUILD_DIR) --directory=$(dir) test)
 
-.PHONY: all clean tests
+report:
+	@$(foreach dir, $(DIRS), \
+		make BUILD_DIR=$(BUILD_DIR) --directory=$(dir) report)
+
+.PHONY: all clean test report

@@ -14,6 +14,7 @@
 |       +--- Makefile
 |   +--- Makefile
 |   +--- run_tests.sh
+|   +--- README.md
 +--- Makefile
 ```
 
@@ -22,6 +23,7 @@
 2. Тесты (test).
 3. Скрипт для тестирования (run_tests.sh)
 4. Отчет (report)
+5. Задание (файл README.md)
 
 ## Сборка
 Для сборки необходим cc совместимый компилятор (gcc, clang) и make

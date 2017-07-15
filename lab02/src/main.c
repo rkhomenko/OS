@@ -129,17 +129,17 @@ int main(int argc, char* argv[]) {
     int pipe2[2];
 
     if (pipe(pipe1) < 0) {
-        LOG_ERROR_ERRNO();
+        LOG_ERROR_ERRNO("Cannot create pipe1");
     }
 
     if (pipe(pipe2) < 0) {
-        LOG_ERROR_ERRNO();
+        LOG_ERROR_ERRNO("Cannot create pipe2");
     }
 
     pid_t id = fork();
 
     if (id < 0) {
-        LOG_ERROR_ERRNO();
+        LOG_ERROR_ERRNO("Cannot fork for child1");
     }
 
     if (id != 0) { /* Parent process continue */
@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
     else { /* Child1 proc started */
         id = fork();
         if (id < 0) {
-            LOG_ERROR_ERRNO();
+            LOG_ERROR_ERRNO("Cannot for child2");
         }
 
         if (id != 0) { /* Child1 proc continue */

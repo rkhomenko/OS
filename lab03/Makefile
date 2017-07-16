@@ -1,6 +1,6 @@
-LAB_BUILD_DIR=$(BUILD_DIR)/lab02
+LAB_BUILD_DIR=$(BUILD_DIR)/lab03
 INCLUDE_DIR=./include
-BINARY=$(LAB_BUILD_DIR)/lab02
+BINARY=$(LAB_BUILD_DIR)/lab03
 
 CFLAGS=-c -std=c99 -Wall -Wextra -pedantic-errors -I$(INCLUDE_DIR)
 
@@ -12,8 +12,7 @@ ifeq ($(BUILD_TYPE), debug)
 	CFLAGS:=$(CFLAGS) -ggdb3 -O1
 endif
 
-SOURCES=src/main.c src/vector.c src/file.c \
-		src/error.c
+SOURCES=src/main.c
 OBJECTS=$(patsubst src/%.c, $(LAB_BUILD_DIR)/%.o,$(SOURCES))
 
 $(BINARY): dir $(OBJECTS)

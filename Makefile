@@ -1,20 +1,23 @@
 BUILD_DIR=.
 
-DIRS = $(shell find . -type d -name "lab*")
+DIRS:=$(sort $(wildcard lab*))
 
+# foreach with DIRS doesn't work for more than one dir! \
+	I don't know why.
 all:
-	@$(foreach dir, $(DIRS), make BUILD_DIR=$(BUILD_DIR) --directory=$(dir))
+	$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab02
+	$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab03
 
 clean:
-	@$(foreach dir, $(DIRS), \
-		make BUILD_DIR=$(BUILD_DIR) --directory=$(dir) clean)
+	$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab02 clean
+	$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab03 clean
 
 test:
-	@$(foreach dir, $(DIRS), \
-		make BUILD_DIR=$(BUILD_DIR) --directory=$(dir) test)
+	$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab02 test
+	$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab03 test
 
 report:
-	@$(foreach dir, $(DIRS), \
-		make BUILD_DIR=$(BUILD_DIR) --directory=$(dir) report)
+	$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab02 report
+	$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab03 report
 
-.PHONY: all clean test report
+.PHONY: all $(DIRS) clean test report

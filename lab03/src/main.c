@@ -1,5 +1,7 @@
-#include <stdio.h>
+#include <matrix.h>
 
 int main(int argc, char* argv[]) {
-    printf("Hello World!\n");
+    mtx_t* mtx = mtx_create(2, 3);
+    mtx_read(mtx);
+    mtx_print(mtx);
 }

@@ -50,8 +50,7 @@ mtx_err_t mtx_print(mtx_t* mtx) {
 
     for (size_t i = 0; i < MTX_N(mtx); i++) {
         for (size_t j = 0; j < MTX_M(mtx); j++) {
-            int res = printf("%lf", MTX_I_J(mtx, i, j));
-            if (res == 0) {
+            if (printf("%lf", MTX_I_J(mtx, i, j)) == 0) {
                 return MTX_PRINT_DATA_ERR;
             }
             if (j == MTX_M(mtx) - 1) {

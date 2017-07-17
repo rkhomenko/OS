@@ -81,7 +81,7 @@ mtx_err_t mtx_read(mtx_t* mtx) {
     return MTX_NO_ERR;
 }
 
-mtx_err_t mtx_read_subm(mtx_t* mtx, size_t filter_size) {
+mtx_err_t mtx_read_and_extend(mtx_t* mtx, size_t filter_size) {
     if (mtx == NULL) {
         return MTX_NULL_PTR_ERR;
     }

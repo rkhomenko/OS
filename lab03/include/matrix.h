@@ -33,6 +33,6 @@ mtx_err_t mtx_create(mtx_t** mtx, size_t n, size_t m);
 mtx_err_t mtx_destroy(mtx_t* mtx);
 mtx_err_t mtx_print(mtx_t* mxt);
 mtx_err_t mtx_read(mtx_t* mtx);
-mtx_err_t mtx_read_subm(mtx_t* mtx, size_t filter_size);
+mtx_err_t mtx_read_and_extend(mtx_t* mtx, size_t filter_size);
 
 #endif /* OS_LABS_MATRIX_H_ */

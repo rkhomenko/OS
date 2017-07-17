@@ -50,7 +50,8 @@ mtx_err_t mtx_print(mtx_t* mtx) {
 
     for (size_t i = 0; i < MTX_N(mtx); i++) {
         for (size_t j = 0; j < MTX_M(mtx); j++) {
-            if (printf("%lf", MTX_I_J(mtx, i, j)) != 1) {
+            int res = printf("%lf", MTX_I_J(mtx, i, j));
+            if (res == 0) {
                 return MTX_PRINT_DATA_ERR;
             }
             if (j == MTX_M(mtx) - 1) {
@@ -75,6 +76,76 @@ mtx_err_t mtx_read(mtx_t* mtx) {
             if (scanf("%lf", MTX_I_J_PTR(mtx, i, j)) != 1) {
                 return MTX_READ_DATA_ERR;
             }
+        }
+    }
+
+    return MTX_NO_ERR;
+}
+
+mtx_err_t mtx_read_subm(mtx_t* mtx, size_t filter_size) {
+    if (mtx == NULL) {
+        return MTX_NULL_PTR_ERR;
+    }
+
+    size_t max = (MTX_N(mtx) < MTX_M(mtx)) ? MTX_M(mtx) : MTX_N(mtx);
+
+    if (filter_size == 0 || filter_size >= max || filter_size % 2 != 1) {
+        return MTX_ARGS_ERR;
+    }
+
+    size_t offset = filter_size / 2;
+
+    for (size_t i = offset; i < MTX_N(mtx) - offset; i++) {
+        for (size_t j = offset; j < MTX_M(mtx) - offset; j++) {
+            if (scanf("%lf", MTX_I_J_PTR(mtx, i, j)) != 1) {
+                return MTX_READ_DATA_ERR;
+            }
+        }
+    }
+
+    /* top rows, left and right top squares */
+    for (size_t i = 0; i < offset; i++) {
+        /* top rows */
+        for (size_t j = offset; j < MTX_M(mtx) - offset; j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, offset, j);
+        }
+        /* left top square */
+        for (size_t j = 0; j < offset; j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, offset, offset);
+        }
+        /* right top square */
+        for (size_t j = MTX_M(mtx) - offset; j < MTX_M(mtx); j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, offset, MTX_M(mtx) - offset - 1);
+        }
+    }
+
+    /* bottom rows, left and right bottom squares */
+    for (size_t i = MTX_N(mtx) - offset; i < MTX_N(mtx); i++) {
+        /* bottom rows */
+        for (size_t j = offset; j < MTX_M(mtx) - offset; j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, MTX_N(mtx) - offset - 1, j);
+        }
+        /* left bottom square */
+        for (size_t j = 0; j < offset; j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, MTX_N(mtx) - offset - 1, offset);
+        }
+        /* right bottom square */
+        for (size_t j = MTX_M(mtx) - offset; j < MTX_M(mtx); j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx,
+                                         MTX_N(mtx) - offset - 1,
+                                         MTX_M(mtx) - offset - 1);
+        }
+    }
+
+    /* left, right rows */
+    for (size_t i = offset; i < MTX_N(mtx) - offset; i++) {
+        /* left rows */
+        for (size_t j = 0; j < offset; j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, i, offset);
+        }
+        /* right rows */
+        for (size_t j = MTX_M(mtx) - offset; j < MTX_M(mtx); j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, i, MTX_M(mtx) - offset - 1);
         }
     }
 

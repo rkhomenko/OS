@@ -3,6 +3,7 @@ INCLUDE_DIR=./include
 BINARY=$(LAB_BUILD_DIR)/lab03
 
 CFLAGS=-c -std=c99 -Wall -Wextra -pedantic-errors -I$(INCLUDE_DIR)
+LDFLAGS=-lpthread
 
 ifeq ($(BUILD_TYPE), release)
 	CFLAGS:=$(CFLAGS) -O2
@@ -16,7 +17,7 @@ SOURCES=src/main.c src/matrix.c
 OBJECTS=$(patsubst src/%.c, $(LAB_BUILD_DIR)/%.o,$(SOURCES))
 
 $(BINARY): dir $(OBJECTS)
-	$(CC) $(OBJECTS) -o $(BINARY)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $(BINARY)
 
 $(OBJECTS): $(LAB_BUILD_DIR)/%.o: src/%.c
 	$(CC) $(CFLAGS) $< -o $@

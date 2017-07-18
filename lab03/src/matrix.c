@@ -101,7 +101,7 @@ mtx_err_t mtx_read_and_extend(mtx_t* mtx, size_t filter_size) {
             }
         }
     }
-
+    /* Matrix extension */
     /* top rows, left and right top squares */
     for (size_t i = 0; i < offset; i++) {
         /* top rows */

@@ -1,7 +1,9 @@
 #include <matrix.h>
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <pthread.h>
 #include <unistd.h>
@@ -24,20 +26,24 @@ typedef struct thread_data thread_data_t;
 #define TD_J(td) ((td)->j)
 
 static mtx_t* in;
-static mtx_t* out;
+static mtx_t* out_erosion;
+static mtx_t* out_dilation;
 static mtx_t* erosion;
 static mtx_t* dilation;
 
 static void* filter_apply(void* data) {
     mtx_t* filter = NULL;
+    mtx_t* out = NULL;
     thread_data_t* td = (thread_data_t*)data;
 
     switch(TD_FILTER(td)) {
         case EROSION:
             filter = erosion;
+            out = out_erosion;
             break;
         case DILATION:
             filter = dilation;
+            out = out_dilation;
             break;
     }
 
@@ -85,7 +91,7 @@ static void* filter_apply_generic(void* data) {
 
     for (size_t i = offset; i < MTX_N(in) - offset; i++) {
         for (size_t j = offset; j < MTX_M(in) - offset; j++) {
-            size_t index = i * (MTX_M(in) - 2 * offset);
+            size_t index = (i - offset) * (MTX_M(in) - 2 * offset) + j - offset;
             TD_I(&tds[index]) = i;
             TD_J(&tds[index]) = j;
             TD_FILTER(&tds[index]) = FW_FILTER(fw);
@@ -122,11 +128,19 @@ int main(int argc, char* argv[]) {
     mtx_create(&erosion, 3, 3);
     mtx_create(&dilation, 3, 3);
     mtx_create(&in, 6, 7);
-    mtx_create(&out, 4, 5);
+    mtx_create(&out_erosion, 4, 5);
+    mtx_create(&out_dilation, 4, 5);
 
     mtx_read(erosion);
     mtx_read(dilation);
     mtx_read_and_extend(in, 3);
 
     filter_apply_multithread();
+
+    mtx_print(out_erosion);
+
+    mtx_destroy(erosion);
+    mtx_destroy(dilation);
+    mtx_destroy(out_erosion);
+    mtx_destroy(out_dilation);
 }

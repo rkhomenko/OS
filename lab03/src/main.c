@@ -3,8 +3,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <limits.h>
 
+#include <getopt.h>
 #include <pthread.h>
 #include <unistd.h>
 
@@ -103,6 +104,9 @@ static void* filter_apply_generic(void* data) {
         pthread_join(tids[i], NULL);
     }
 
+    free(tids);
+    free(tds);
+
     return NULL;
 }
 
@@ -125,6 +129,30 @@ static void filter_apply_multithread(void) {
 }
 
 int main(int argc, char* argv[]) {
+    size_t max_threads = 0;
+    int opt = 0;
+    while ((opt = getopt(argc, argv, "c:")) != -1) {
+        switch(opt) {
+            case 'c':
+                max_threads = strtoul(optarg, NULL, 10);
+                if (max_threads == 0) {
+                    perror("Cannot parse threads count!");
+                    exit(EXIT_FAILURE);
+                }
+                if (max_threads == ULONG_MAX && errno == ERANGE) {
+                    perror("Threads count to big!");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case '?':
+                perror("-c needs argument!");
+                exit(EXIT_FAILURE);
+                break;
+            default:
+                abort();
+        }
+    }
+
     mtx_create(&erosion, 3, 3);
     mtx_create(&dilation, 3, 3);
     mtx_create(&in, 6, 7);
@@ -139,6 +167,7 @@ int main(int argc, char* argv[]) {
 
     mtx_print(out_erosion);
 
+    mtx_destroy(in);
     mtx_destroy(erosion);
     mtx_destroy(dilation);
     mtx_destroy(out_erosion);

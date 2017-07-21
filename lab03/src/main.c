@@ -131,7 +131,7 @@ static void filter_apply_multithread(void) {
 int main(int argc, char* argv[]) {
     size_t max_threads = 0;
     int opt = 0;
-    while ((opt = getopt(argc, argv, "c:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:")) != -1) {
         switch(opt) {
             case 'c':
                 max_threads = strtoul(optarg, NULL, 10);
@@ -144,12 +144,13 @@ int main(int argc, char* argv[]) {
                     exit(EXIT_FAILURE);
                 }
                 break;
-            case '?':
-                perror("-c needs argument!");
-                exit(EXIT_FAILURE);
+            case 'h':
+                puts("-c\t\tset maximum threads count. Zero - unlimited\n"
+                     "-h\t\tprint this message and exit");
+                exit(EXIT_SUCCESS);
                 break;
             default:
-                abort();
+                exit(EXIT_FAILURE);
         }
     }
 

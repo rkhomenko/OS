@@ -29,6 +29,8 @@ enum matrix_error {
 };
 typedef enum matrix_error mtx_err_t;
 
+const char* mtx_strerror(mtx_err_t err);
+
 mtx_err_t mtx_create(mtx_t** mtx, size_t n, size_t m);
 mtx_err_t mtx_destroy(mtx_t* mtx);
 mtx_err_t mtx_print(mtx_t* mxt);

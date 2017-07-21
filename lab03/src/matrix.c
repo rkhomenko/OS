@@ -3,6 +3,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static const char* MTX_NO_ERR_STR = "No error";
+static const char* MTX_ARGS_ERR_STR = "Bad arguments";
+static const char* MTX_NULL_PTR_ERR_STR = "Null ptr";
+static const char* MTX_DATA_ALLOC_ERR_STR = "Data memory allocation failed";
+static const char* MTX_STRUCT_ALLOC_ERR_STR = "Struct memory allocation failed";
+static const char* MTX_PRINT_DATA_ERR_STR = "Cannot print data";
+static const char* MTX_READ_DATA_ERR_STR = "Cannot read data";
+
+const char* mtx_strerror(mtx_err_t err) {
+    const char* ret = NULL;
+    switch(err) {
+        case MTX_NO_ERR:
+            ret = MTX_NO_ERR_STR;
+            break;
+        case MTX_ARGS_ERR:
+            ret = MTX_ARGS_ERR_STR;
+            break;
+        case MTX_NULL_PTR_ERR:
+            ret = MTX_NULL_PTR_ERR_STR;
+            break;
+        case MTX_STRUCT_ALLOC_ERR:
+            ret = MTX_STRUCT_ALLOC_ERR_STR;
+            break;
+        case MTX_DATA_ALLOC_ERR:
+            ret = MTX_DATA_ALLOC_ERR_STR;
+            break;
+        case MTX_PRINT_DATA_ERR:
+            ret = MTX_PRINT_DATA_ERR_STR;
+            break;
+        case MTX_READ_DATA_ERR:
+            ret = MTX_READ_DATA_ERR_STR;
+            break;
+    }
+    return ret;
+}
+
 mtx_err_t mtx_create(mtx_t** mtx, size_t n, size_t m) {
     if (n == 0 || m == 0) {
         return MTX_ARGS_ERR;

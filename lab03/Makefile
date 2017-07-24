@@ -10,8 +10,7 @@ ifeq ($(BUILD_TYPE), release)
 endif
 
 ifeq ($(BUILD_TYPE), debug)
-	CFLAGS:=$(CFLAGS) -ggdb3 -O1 -fsanitize=thread -fPIC
-	LDFLAGS:=$(LDFLAGS) -fsanitize=thread
+	CFLAGS:=$(CFLAGS) -g -Og
 endif
 
 SOURCES=src/main.c src/matrix.c

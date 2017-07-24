@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <limits.h>
 
@@ -27,6 +28,8 @@ typedef struct thread_data thread_data_t;
 #define TD_J(td) ((td)->j)
 
 static pthread_mutex_t mutex;
+
+static int64_t available_threads = -1;
 
 static mtx_t* in_erosion;
 static mtx_t* in_dilation;
@@ -63,8 +66,10 @@ static void* filter_apply(void* data) {
         }
     }
 
-    pthread_mutex_lock(&mutex);
     MTX_I_J(out, TD_I(td) - offset, TD_J(td) - offset) = value;
+
+    pthread_mutex_lock(&mutex);
+    available_threads++;
     pthread_mutex_unlock(&mutex);
 
     return NULL;
@@ -82,6 +87,7 @@ static void* filter_apply_generic(void* data) {
     mtx_t* filter = NULL;
     mtx_t* in = NULL;
     filter_wrapper_t* fw = (filter_wrapper_t*)data;
+    size_t threads_created = 0;
 
     switch(FW_FILTER(fw)) {
         case EROSION:
@@ -106,13 +112,30 @@ static void* filter_apply_generic(void* data) {
             TD_I(&tds[index]) = i;
             TD_J(&tds[index]) = j;
             TD_FILTER(&tds[index]) = FW_FILTER(fw);
-            pthread_create(&tids[index], &attr, filter_apply, &tds[index]);
+
+            if (available_threads != 0) {
+                if (available_threads > 0) {
+                    pthread_mutex_lock(&mutex);
+                    available_threads--;
+                    pthread_mutex_unlock(&mutex);
+                }
+                if (pthread_create(&tids[threads_created],
+                                   &attr,
+                                   filter_apply,
+                                   &tds[index])) {
+                    perror("ERR CALC CREATE");
+                }
+                threads_created++;
+            }
+            else {
+                filter_apply(&tds[index]);
+            }
         }
     }
 
     pthread_attr_destroy(&attr);
 
-    for (size_t i = 0; i < threads_count; i++) {
+    for (size_t i = 0; i < threads_created; i++) {
         pthread_join(tids[i], NULL);
     }
 
@@ -128,6 +151,7 @@ static void filter_apply_multithread(void) {
     pthread_mutexattr_t mutex_attr;
     filter_wrapper_t fws[FW_COUNT];
     pthread_t tids[FW_COUNT];
+    size_t threads_created = 0;
 
     FW_FILTER(&fws[0]) = EROSION;
     FW_FILTER(&fws[1]) = DILATION;
@@ -138,12 +162,26 @@ static void filter_apply_multithread(void) {
     pthread_mutex_init(&mutex, &mutex_attr);
 
     for (size_t i = 0; i < FW_COUNT; i++) {
-        if (pthread_create(&tids[i], &attr, filter_apply_generic, &fws[i])) {
-            perror("ERR CREATE");
+        if (available_threads != 0) {
+            if (available_threads > 0) {
+                pthread_mutex_lock(&mutex);
+                available_threads--;
+                pthread_mutex_unlock(&mutex);
+            }
+            if (pthread_create(&tids[threads_created],
+                               &attr,
+                               filter_apply_generic,
+                               &fws[i])) {
+                perror("ERR CREATE");
+            }
+            threads_created++;
+        }
+        else {
+            filter_apply_generic(&fws[i]);
         }
     }
 
-    for (size_t i = 0; i < FW_COUNT; i++) {
+    for (size_t i = 0; i < threads_created; i++) {
         if (pthread_join(tids[i], NULL)) {
             perror("ERR JOIN");
         }
@@ -181,17 +219,14 @@ int main(int argc, char* argv[]) {
         switch(opt) {
             case 'c':
                 max_threads = strtoul(optarg, NULL, 10);
-                if (max_threads == 0) {
-                    perror("Cannot parse threads count!");
-                    exit(EXIT_FAILURE);
-                }
                 if (max_threads == ULONG_MAX && errno == ERANGE) {
                     perror("Threads count to big!");
                     exit(EXIT_FAILURE);
                 }
+                available_threads = max_threads;
                 break;
             case 'h':
-                puts("-c\t\tset maximum threads count. Zero - unlimited\n"
+                puts("-c\t\tset maximum threads count (unlimited if not set)\n"
                      "-h\t\tprint this message and exit");
                 exit(EXIT_SUCCESS);
                 break;

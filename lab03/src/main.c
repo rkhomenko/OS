@@ -26,7 +26,10 @@ typedef struct thread_data thread_data_t;
 #define TD_I(td) ((td)->i)
 #define TD_J(td) ((td)->j)
 
-static mtx_t* in;
+static pthread_mutex_t mutex;
+
+static mtx_t* in_erosion;
+static mtx_t* in_dilation;
 static mtx_t* out_erosion;
 static mtx_t* out_dilation;
 static mtx_t* erosion;
@@ -35,15 +38,18 @@ static mtx_t* dilation;
 static void* filter_apply(void* data) {
     mtx_t* filter = NULL;
     mtx_t* out = NULL;
+    mtx_t* in = NULL;
     thread_data_t* td = (thread_data_t*)data;
 
     switch(TD_FILTER(td)) {
         case EROSION:
             filter = erosion;
+            in = in_erosion;
             out = out_erosion;
             break;
         case DILATION:
             filter = dilation;
+            in = in_dilation;
             out = out_dilation;
             break;
     }
@@ -57,7 +63,9 @@ static void* filter_apply(void* data) {
         }
     }
 
+    pthread_mutex_lock(&mutex);
     MTX_I_J(out, TD_I(td) - offset, TD_J(td) - offset) = value;
+    pthread_mutex_unlock(&mutex);
 
     return NULL;
 }
@@ -72,14 +80,17 @@ typedef struct filter_wrapper filter_wrapper_t;
 static void* filter_apply_generic(void* data) {
     pthread_attr_t attr;
     mtx_t* filter = NULL;
+    mtx_t* in = NULL;
     filter_wrapper_t* fw = (filter_wrapper_t*)data;
 
     switch(FW_FILTER(fw)) {
         case EROSION:
             filter = erosion;
+            in = in_erosion;
             break;
         case DILATION:
             filter = dilation;
+            in = in_dilation;
             break;
     }
 
@@ -87,7 +98,6 @@ static void* filter_apply_generic(void* data) {
     size_t threads_count = (MTX_N(in) - 2 * offset) * (MTX_M(in) - 2 * offset);
     pthread_t* tids = (pthread_t*)malloc(sizeof(pthread_t) * threads_count);
     thread_data_t* tds = (thread_data_t*)malloc(sizeof(thread_data_t) * threads_count);
-
     pthread_attr_init(&attr);
 
     for (size_t i = offset; i < MTX_N(in) - offset; i++) {
@@ -99,6 +109,8 @@ static void* filter_apply_generic(void* data) {
             pthread_create(&tids[index], &attr, filter_apply, &tds[index]);
         }
     }
+
+    pthread_attr_destroy(&attr);
 
     for (size_t i = 0; i < threads_count; i++) {
         pthread_join(tids[i], NULL);
@@ -113,24 +125,58 @@ static void* filter_apply_generic(void* data) {
 static void filter_apply_multithread(void) {
     const size_t FW_COUNT = 2;
     pthread_attr_t attr;
+    pthread_mutexattr_t mutex_attr;
     filter_wrapper_t fws[FW_COUNT];
     pthread_t tids[FW_COUNT];
 
     FW_FILTER(&fws[0]) = EROSION;
     FW_FILTER(&fws[1]) = DILATION;
 
+    pthread_attr_init(&attr);
+
+    pthread_mutexattr_init(&mutex_attr);
+    pthread_mutex_init(&mutex, &mutex_attr);
+
     for (size_t i = 0; i < FW_COUNT; i++) {
-        pthread_create(&tids[i], &attr, filter_apply_generic, &fws[i]);
+        if (pthread_create(&tids[i], &attr, filter_apply_generic, &fws[i])) {
+            perror("ERR CREATE");
+        }
     }
 
     for (size_t i = 0; i < FW_COUNT; i++) {
-        pthread_join(tids[i], NULL);
+        if (pthread_join(tids[i], NULL)) {
+            perror("ERR JOIN");
+        }
     }
+
+    pthread_attr_destroy(&attr);
+
+    pthread_mutexattr_destroy(&mutex_attr);
+    pthread_mutex_destroy(&mutex);
 }
 
+#define MTX_CHECK_ERR(err) \
+    do { \
+        if (err != MTX_NO_ERR) { \
+            fprintf(stderr, \
+                    "Errro in %s (%s:%d): %s\n", \
+                    __func__, \
+                    __FILE__, \
+                    __LINE__, \
+                    mtx_strerror(err)); \
+            exit(err); \
+        } \
+    } while (0)
+
 int main(int argc, char* argv[]) {
+    mtx_t* in = NULL;
+    size_t erosion_size = 0;
+    size_t dilation_size = 0;
+    size_t n = 0;
+    size_t m = 0;
     size_t max_threads = 0;
     int opt = 0;
+
     while ((opt = getopt(argc, argv, "hc:")) != -1) {
         switch(opt) {
             case 'c':
@@ -154,21 +200,58 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    mtx_create(&erosion, 3, 3);
-    mtx_create(&dilation, 3, 3);
-    mtx_create(&in, 6, 7);
-    mtx_create(&out_erosion, 4, 5);
-    mtx_create(&out_dilation, 4, 5);
+    if (scanf("%zu", &erosion_size) != 1) {
+        perror("Cannot read erosion filter size!");
+        exit(EXIT_FAILURE);
+    }
 
-    mtx_read(erosion);
-    mtx_read(dilation);
-    mtx_read_and_extend(in, 3);
+    mtx_err_t err = mtx_create(&erosion, erosion_size, erosion_size);
+    MTX_CHECK_ERR(err);
+    err = mtx_read(erosion);
+    MTX_CHECK_ERR(err);
+
+    if (scanf("%zu", &dilation_size) != 1) {
+        perror("Cannot read dilation filter size!");
+        exit(EXIT_FAILURE);
+    }
+
+    err = mtx_create(&dilation, dilation_size, dilation_size);
+    MTX_CHECK_ERR(err);
+    err = mtx_read(dilation);
+    MTX_CHECK_ERR(err);
+
+    if (scanf("%zu %zu", &n, &m) != 2) {
+        perror("Cannot read size of input matrix!");
+        exit(EXIT_FAILURE);
+    }
+
+    err = mtx_create(&in, n, m);
+    MTX_CHECK_ERR(err);
+    err = mtx_read(in);
+    MTX_CHECK_ERR(err);
+
+    err = mtx_extend(&in_erosion, in, erosion_size);
+    MTX_CHECK_ERR(err);
+
+    err = mtx_extend(&in_dilation, in, dilation_size);
+    MTX_CHECK_ERR(err);
+
+    mtx_destroy(in);
+
+    err = mtx_create(&out_erosion, n, m);
+    MTX_CHECK_ERR(err);
+
+    err = mtx_create(&out_dilation, n, m);
+    MTX_CHECK_ERR(err);
 
     filter_apply_multithread();
 
     mtx_print(out_erosion);
+    putchar('\n');
+    mtx_print(out_dilation);
 
-    mtx_destroy(in);
+    mtx_destroy(in_erosion);
+    mtx_destroy(in_dilation);
     mtx_destroy(erosion);
     mtx_destroy(dilation);
     mtx_destroy(out_erosion);

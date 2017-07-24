@@ -195,7 +195,7 @@ static void filter_apply_multithread(void) {
 
 #define MTX_CHECK_ERR(err) \
     do { \
-        if (err != MTX_NO_ERR) { \
+        if ((err) != MTX_NO_ERR) { \
             fprintf(stderr, \
                     "Errro in %s (%s:%d): %s\n", \
                     __func__, \
@@ -213,9 +213,10 @@ int main(int argc, char* argv[]) {
     size_t n = 0;
     size_t m = 0;
     size_t max_threads = 0;
+    size_t apply_k_times = 1;
     int opt = 0;
 
-    while ((opt = getopt(argc, argv, "hc:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:k:")) != -1) {
         switch(opt) {
             case 'c':
                 max_threads = strtoul(optarg, NULL, 10);
@@ -225,8 +226,16 @@ int main(int argc, char* argv[]) {
                 }
                 available_threads = max_threads;
                 break;
+            case 'k':
+                apply_k_times = strtoul(optarg, NULL, 10);
+                if (apply_k_times == ULONG_MAX && errno == ERANGE) {
+                    perror("Cannot apply filter k times. K is to big!");
+                    exit(EXIT_FAILURE);
+                }
+                break;
             case 'h':
                 puts("-c\t\tset maximum threads count (unlimited if not set)\n"
+                     "-k\t\tset k for applying filter k times (one if not set)\n"
                      "-h\t\tprint this message and exit");
                 exit(EXIT_SUCCESS);
                 break;
@@ -279,7 +288,12 @@ int main(int argc, char* argv[]) {
     err = mtx_create(&out_dilation, n, m);
     MTX_CHECK_ERR(err);
 
-    filter_apply_multithread();
+    for (size_t k = 0; k < apply_k_times; k++) {
+       filter_apply_multithread();
+       err = mtx_extend_exist(in_erosion, out_erosion, erosion_size);
+       MTX_CHECK_ERR(err);
+       err = mtx_extend_exist(in_dilation, out_dilation, dilation_size);
+    }
 
     mtx_print(out_erosion);
     putchar('\n');

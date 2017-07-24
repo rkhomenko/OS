@@ -29,6 +29,7 @@ typedef struct thread_data thread_data_t;
 
 static pthread_mutex_t mutex;
 
+static int threads_disabled = 0;
 static int64_t available_threads = -1;
 
 static mtx_t* in_erosion;
@@ -68,9 +69,11 @@ static void* filter_apply(void* data) {
 
     MTX_I_J(out, TD_I(td) - offset, TD_J(td) - offset) = value;
 
-    pthread_mutex_lock(&mutex);
-    available_threads++;
-    pthread_mutex_unlock(&mutex);
+    if (!threads_disabled) {
+        pthread_mutex_lock(&mutex);
+        available_threads++;
+        pthread_mutex_unlock(&mutex);
+    }
 
     return NULL;
 }
@@ -225,6 +228,7 @@ int main(int argc, char* argv[]) {
                     exit(EXIT_FAILURE);
                 }
                 available_threads = max_threads;
+                threads_disabled = (available_threads == 0) ? 1 : 0;
                 break;
             case 'k':
                 apply_k_times = strtoul(optarg, NULL, 10);

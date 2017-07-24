@@ -134,9 +134,25 @@ mtx_err_t mtx_extend(mtx_t** mtx, mtx_t* in, size_t filter_size) {
         return err;
     }
 
-    for (size_t i = offset; i < MTX_N(*mtx) - offset; i++) {
-        for (size_t j = offset; j < MTX_M(*mtx) - offset; j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(in, i - offset, j - offset);
+    err = mtx_extend_exist(*mtx, in, filter_size);
+
+    return MTX_NO_ERR;
+}
+
+mtx_err_t mtx_extend_exist(mtx_t* mtx, mtx_t* in, size_t filter_size) {
+    if (mtx == NULL || in == NULL) {
+        return MTX_NULL_PTR_ERR;
+    }
+
+    if (filter_size == 0) {
+        return MTX_ARGS_ERR;
+    }
+
+    size_t offset = filter_size / 2;
+
+    for (size_t i = offset; i < MTX_N(mtx) - offset; i++) {
+        for (size_t j = offset; j < MTX_M(mtx) - offset; j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(in, i - offset, j - offset);
         }
     }
 
@@ -144,46 +160,46 @@ mtx_err_t mtx_extend(mtx_t** mtx, mtx_t* in, size_t filter_size) {
     // top rows, left and right top squares
     for (size_t i = 0; i < offset; i++) {
         // top rows
-        for (size_t j = offset; j < MTX_M(*mtx) - offset; j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(*mtx, offset, j);
+        for (size_t j = offset; j < MTX_M(mtx) - offset; j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, offset, j);
         }
         // left top square
         for (size_t j = 0; j < offset; j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(*mtx, offset, offset);
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, offset, offset);
         }
         // right top square
-        for (size_t j = MTX_M(*mtx) - offset; j < MTX_M(*mtx); j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(*mtx, offset, MTX_M(*mtx) - offset - 1);
+        for (size_t j = MTX_M(mtx) - offset; j < MTX_M(mtx); j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, offset, MTX_M(mtx) - offset - 1);
         }
     }
 
     // bottom rows, left and right bottom squares
-    for (size_t i = MTX_N(*mtx) - offset; i < MTX_N(*mtx); i++) {
+    for (size_t i = MTX_N(mtx) - offset; i < MTX_N(mtx); i++) {
         // bottom rows
-        for (size_t j = offset; j < MTX_M(*mtx) - offset; j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(*mtx, MTX_N(*mtx) - offset - 1, j);
+        for (size_t j = offset; j < MTX_M(mtx) - offset; j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, MTX_N(mtx) - offset - 1, j);
         }
         // left bottom square
         for (size_t j = 0; j < offset; j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(*mtx, MTX_N(*mtx) - offset - 1, offset);
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, MTX_N(mtx) - offset - 1, offset);
         }
         // right bottom square
-        for (size_t j = MTX_M(*mtx) - offset; j < MTX_M(*mtx); j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(*mtx,
-                                          MTX_N(*mtx) - offset - 1,
-                                          MTX_M(*mtx) - offset - 1);
+        for (size_t j = MTX_M(mtx) - offset; j < MTX_M(mtx); j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx,
+                                         MTX_N(mtx) - offset - 1,
+                                         MTX_M(mtx) - offset - 1);
         }
     }
 
     // left, right rows
-    for (size_t i = offset; i < MTX_N(*mtx) - offset; i++) {
+    for (size_t i = offset; i < MTX_N(mtx) - offset; i++) {
         // left rows
         for (size_t j = 0; j < offset; j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(*mtx, i, offset);
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, i, offset);
         }
         // right rows
-        for (size_t j = MTX_M(*mtx) - offset; j < MTX_M(*mtx); j++) {
-            MTX_I_J(*mtx, i, j) = MTX_I_J(*mtx, i, MTX_M(*mtx) - offset - 1);
+        for (size_t j = MTX_M(mtx) - offset; j < MTX_M(mtx); j++) {
+            MTX_I_J(mtx, i, j) = MTX_I_J(mtx, i, MTX_M(mtx) - offset - 1);
         }
     }
 

@@ -218,8 +218,9 @@ int main(int argc, char* argv[]) {
     size_t max_threads = 0;
     size_t apply_k_times = 1;
     int opt = 0;
+    int disable_output = 0;
 
-    while ((opt = getopt(argc, argv, "hc:k:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:k:d")) != -1) {
         switch(opt) {
             case 'c':
                 max_threads = strtoul(optarg, NULL, 10);
@@ -237,9 +238,13 @@ int main(int argc, char* argv[]) {
                     exit(EXIT_FAILURE);
                 }
                 break;
+            case 'd':
+                disable_output = 1;
+                break;
             case 'h':
                 puts("-c\t\tset maximum threads count (unlimited if not set)\n"
                      "-k\t\tset k for applying filter k times (one if not set)\n"
+                     "-d\t\tdisable output\n"
                      "-h\t\tprint this message and exit");
                 exit(EXIT_SUCCESS);
                 break;
@@ -299,9 +304,11 @@ int main(int argc, char* argv[]) {
        err = mtx_extend_exist(in_dilation, out_dilation, dilation_size);
     }
 
-    mtx_print(out_erosion);
-    putchar('\n');
-    mtx_print(out_dilation);
+    if (!disable_output) {
+        mtx_print(out_erosion);
+        putchar('\n');
+        mtx_print(out_dilation);
+    }
 
     mtx_destroy(in_erosion);
     mtx_destroy(in_dilation);

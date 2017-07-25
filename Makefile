@@ -7,17 +7,21 @@ DIRS:=$(sort $(wildcard lab*))
 all:
 	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab02
 	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab03
+	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab04
 
 clean:
 	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab02 clean
 	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab03 clean
+	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab04 clean
 
 test:
 	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab02 test
 	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab03 test
+	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab04 test
 
 report:
 	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab02 report
 	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab03 report
+	@$(MAKE) BUILD_DIR=$(BUILD_DIR) --directory=lab04 report
 
 .PHONY: all $(DIRS) clean test report

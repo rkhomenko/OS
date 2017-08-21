@@ -13,7 +13,7 @@ ifeq ($(BUILD_TYPE), debug)
 	CFLAGS:=$(CFLAGS) -g -Og
 endif
 
-SOURCES=src/main.c
+SOURCES=src/main.c src/text_editor.c
 OBJECTS=$(patsubst src/%.c, $(LAB_BUILD_DIR)/%.o,$(SOURCES))
 
 $(BINARY): dir $(OBJECTS)

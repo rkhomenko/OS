@@ -3,6 +3,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,6 +40,7 @@ static void build_zblocks(char* text, size_t* zblocks, size_t size) {
 
 static void find_with_zblocks(const char* text,
                               size_t text_size,
+                              find_type ft,
                               const char* needle,
                               char** last,
                               size_t* lines,
@@ -56,7 +58,14 @@ static void find_with_zblocks(const char* text,
     size_t* zblocks = (size_t*)malloc(buffer_size * sizeof(size_t));
 
     for (size_t i = 0; i < NEEDLE_SIZE; i++) {
-        buffer[index] = needle[i];
+        switch(ft) {
+            case FT_CASE_SENS:
+                buffer[index] = needle[i];
+                break;
+            case FT_CASE_IGNORE:
+                buffer[index] = tolower(needle[i]);
+                break;
+        }
         index++;
     }
 
@@ -68,7 +77,14 @@ static void find_with_zblocks(const char* text,
     }
 
     for (size_t i = 0; i < text_size; i++) {
-        buffer[index] = text[i];
+        switch(ft) {
+            case FT_CASE_SENS:
+                buffer[index] = text[i];
+                break;
+            case FT_CASE_IGNORE:
+                buffer[index] = tolower(text[i]);
+                break;
+        }
         index++;
     }
 
@@ -103,11 +119,10 @@ void find(int fd, const char* needle, find_type ft, size_t map_size) {
     size_t chars = 0;
 
     for (size_t i = 0; i < COUNT; i++) {
-        printf("%lu\n", i);
         size_t current_map_size =
             (FILE_SIZE - readed < map_size) ? FILE_SIZE - readed : map_size;
         mapped = mmap(mapped, current_map_size, PROT_READ, MAP_PRIVATE, fd, i * map_size);
-        find_with_zblocks(mapped, current_map_size, needle, &last, &lines, &chars);
+        find_with_zblocks(mapped, current_map_size, ft, needle, &last, &lines, &chars);
         munmap(mapped, current_map_size);
         readed += current_map_size;
     }

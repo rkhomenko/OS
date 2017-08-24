@@ -69,10 +69,12 @@ int main(int argc, char** argv) {
             case 's':
                 fd = open_file_for_reading(file_name);
                 find(fd, optarg, FT_CASE_SENS, memory);
+                close(fd);
                 break;
             case 'S':
                 fd = open_file_for_reading(file_name);
                 find(fd, optarg, FT_CASE_IGNORE, memory);
+                close(fd);
                 break;
             case 'h':
                 printf(help_message);

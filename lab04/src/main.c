@@ -57,9 +57,9 @@ int main(int argc, char** argv) {
         interactive_mode();
     }
 
-    while ((opt = getopt(argc, argv, "m:f:s:h")) != -1) {
+    while ((opt = getopt(argc, argv, "m:f:s:S:h")) != -1) {
         int fd = 0;
-        switch(opt) {
+        switch (opt) {
             case 'm':
                 memory = to_memory_value(optarg);
                 break;

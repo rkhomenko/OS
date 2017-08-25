@@ -36,7 +36,7 @@ static size_t to_memory_value(const char* str) {
         exit(EXIT_FAILURE);
     }
     result = (result < PAGE_SIZE) ? 1 : result / PAGE_SIZE;
-    return result;
+    return result * PAGE_SIZE;
 }
 
 const char* help_message =

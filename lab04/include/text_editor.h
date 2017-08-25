@@ -1,6 +1,8 @@
 #ifndef OS_LABS_TEXT_EDITOR_H_
 #define OS_LABS_TEXT_EDITOR_H_
 
+#include <stddef.h>
+
 enum find_type {
     FT_CASE_SENS,
     FT_CASE_IGNORE

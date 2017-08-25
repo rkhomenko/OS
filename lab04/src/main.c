@@ -13,13 +13,82 @@
 
 static void interactive_mode(void) {}
 
-static int open_file_for_reading(const char* file_name) {
-    int fd = open(file_name, O_RDONLY);
+static int is_locked(int fd) {
+    int result = 0;
+    struct flock fl;
+
+    memset(&fl, 0, sizeof(fl));
+
+    if (fcntl(fd, F_GETLK, &fl) == -1) {
+        perror("Cannot check file lock");
+        exit(EXIT_FAILURE);
+    }
+
+    if (fl.l_type != F_UNLCK) {
+        result = 1;
+    }
+
+    return result;
+}
+
+static void lock_file(int fd) {
+    struct flock fl;
+
+    fl.l_type = F_WRLCK;
+    fl.l_whence = SEEK_SET;
+    fl.l_start = 0;
+    fl.l_len = get_file_size(fd);
+
+    if (fcntl(fd, F_SETLK, &fl) == -1) {
+        perror("Cannot lock file");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void unlock_file(int fd) {
+    struct flock fl;
+
+    fl.l_type = F_UNLCK;
+    fl.l_whence = SEEK_SET;
+    fl.l_start = 0;
+    fl.l_len = get_file_size(fd);
+
+    if (fcntl(fd, F_SETLK, &fl) == -1) {
+        perror("Cannot unlock file");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static int open_file(const char* file_name) {
+    int fd = open(file_name, O_RDWR);
     if (fd < 0) {
         printf("Cannot open file \"%s\": %s\n", file_name, strerror(errno));
         exit(EXIT_FAILURE);
     }
+
+    if (is_locked(fd)) {
+        printf("File \"%s\" is already locked!\n", file_name);
+        exit(EXIT_FAILURE);
+    }
+
+    lock_file(fd);
+
     return fd;
+}
+
+static void close_file(int fd) {
+    if (is_locked(fd)) {
+        unlock_file(fd);
+    }
+
+    close(fd);
+}
+
+static void check_fd(int fd) {
+    if (fd == 0) {
+        printf("File not set!\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 static size_t to_memory_value(const char* str) {
@@ -57,29 +126,34 @@ int main(int argc, char** argv) {
         interactive_mode();
     }
 
+    int fd = 0;
     while ((opt = getopt(argc, argv, "m:f:s:S:h")) != -1) {
-        int fd = 0;
+        find_type ft = FT_CASE_IGNORE;
         switch (opt) {
             case 'm':
                 memory = to_memory_value(optarg);
                 break;
             case 'f':
                 file_name = optarg;
+                if (fd != 0) {
+                    close_file(fd);
+                }
+                fd = open_file(file_name);
                 break;
             case 's':
-                fd = open_file_for_reading(file_name);
-                find(fd, optarg, FT_CASE_SENS, memory);
-                close(fd);
-                break;
+                ft = FT_CASE_SENS;
             case 'S':
-                fd = open_file_for_reading(file_name);
-                find(fd, optarg, FT_CASE_IGNORE, memory);
-                close(fd);
+                check_fd(fd);
+                find(fd, optarg, ft, memory);
                 break;
             case 'h':
                 printf(help_message);
                 exit(EXIT_SUCCESS);
                 break;
         }
+    }
+
+    if (fd != 0) {
+        close_file(fd);
     }
 }

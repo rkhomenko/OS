@@ -9,6 +9,7 @@ enum find_type {
 };
 typedef enum find_type find_type;
 
+size_t get_file_size(int fd);
 void find(int fd, const char* needle, find_type ft, size_t map_size);
 
 #endif

@@ -10,7 +10,7 @@
 
 #include <text_editor.h>
 
-static size_t get_file_size(int fd) {
+size_t get_file_size(int fd) {
     struct stat st;
     if (fstat(fd, &st) < 0) {
         printf("get_file_size: fstat error\n");

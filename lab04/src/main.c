@@ -77,10 +77,7 @@ static int open_file(const char* file_name) {
 }
 
 static void close_file(int fd) {
-    if (is_locked(fd)) {
-        unlock_file(fd);
-    }
-
+    unlock_file(fd);
     close(fd);
 }
 

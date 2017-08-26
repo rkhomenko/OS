@@ -145,3 +145,23 @@ void find(int fd, const char* needle, find_type ft, size_t map_size) {
     free(buffer);
     free(zblocks);
 }
+
+static void add_to_created_file(int fd, int64_t pos, const char* what) {
+    const char space = ' ';
+
+    for (int64_t i = 0; i < pos - 1; i++) {
+        write(fd, &space, 1);
+    }
+
+    write(fd, what, strlen(what));
+}
+
+void add(int fd, open_mode mode, int64_t pos, const char* what) {
+    switch (mode) {
+        case OM_CREAT:
+            add_to_created_file(fd, pos, what);
+            break;
+        case OM_EXIST:
+            break;
+    }
+}

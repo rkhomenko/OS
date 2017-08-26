@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -57,21 +58,34 @@ static void unlock_file(int fd) {
     }
 }
 
-static int open_file(const char* file_name) {
-    int fd = open(file_name, O_RDWR);
-    if (fd < 0) {
-        printf("Cannot open file \"%s\": %s\n", file_name, strerror(errno));
-        return 0;
+static open_mode open_file(int* fd, const char* file_name) {
+    open_mode mode = OM_EXIST;
+    *fd = open(file_name, O_RDWR);
+    if (*fd < 0) {
+        *fd = 0;
+        if (errno != ENOENT) {
+            printf("Cannot open file \"%s\": %s\n", file_name, strerror(errno));
+            return mode;
+        }
+
+        mode = OM_CREAT;
+        *fd = open(file_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+        if (*fd < 0) {
+            *fd = 0;
+            printf("Cannot create file \"%s\": %s\n", file_name, strerror(errno));
+            return mode;
+        }
     }
 
-    if (is_locked(fd)) {
+
+    if (is_locked(*fd)) {
         printf("File \"%s\" is already locked!\n", file_name);
         return 0;
     }
 
-    lock_file(fd);
+    lock_file(*fd);
 
-    return fd;
+    return mode;
 }
 
 static void close_file(int fd) {
@@ -86,21 +100,45 @@ static void check_fd(int fd) {
     }
 }
 
+static int64_t to_int(const char* str, const char* msg) {
+    size_t result = strtoll(str, NULL, 10);
+    if (errno == ERANGE) {
+        printf("%s\n", msg);
+        return -1;
+    }
+
+    return result;
+}
+
 static size_t to_memory_value(const char* str) {
     const size_t PAGE_SIZE = sysconf(_SC_PAGESIZE);
-    size_t result = 0;
+    int64_t result = 0;
 
     if (str == NULL) {
         return PAGE_SIZE;
     }
 
-    result = strtoull(str, NULL, 10);
-    if (errno == ERANGE) {
-        printf("Bad memory value!\n");
-        return 0;
-    }
-    result = (result < PAGE_SIZE) ? 1 : result / PAGE_SIZE;
+    result = to_int(str, "Bad memory value!");
+    result = (result < 0) ? 0 : result;
+    result = (result < (int64_t)PAGE_SIZE) ? 1 : result / PAGE_SIZE;
     return result * PAGE_SIZE;
+}
+
+static int64_t get_position(int fd, const char* str) {
+    const char* msg = "Bad position value!";
+    int64_t pos = to_int(str, msg);
+
+    if (pos < 0) {
+        printf("%s\n", msg);
+        return pos;
+    }
+
+    if (get_file_size(fd) != 0 && pos > (int64_t)get_file_size(fd)) {
+        printf("Bad position range!\n");
+        return -1;
+    }
+
+    return pos;
 }
 
 static const char* help_message =
@@ -110,6 +148,8 @@ static const char* help_message =
     "-f\tset file name for operations\n"
     "-s\tsearch in file\n"
     "-S\tsearch in file with ignore case\n"
+    "-p\tset file position\n"
+    "-a\tadd text to position\n"
     "-h\tprint this message and exit\n";
 
 static const char* help_message_interactive_mode =
@@ -171,7 +211,9 @@ static void interactive_mode(void) {
     size_t arg_size = 0;
     size_t memory = to_memory_value(NULL);
     int fd = 0;
+    open_mode mode = OM_EXIST;
 
+    printf("Simple text editor for lab04. Don't use it!\n");
     while (1) {
         printf(">> ");
         read_strings(cmd, arg, BUFFER_SIZE);
@@ -218,7 +260,7 @@ static void interactive_mode(void) {
             memory = to_memory_value(arg);
         }
         else if (strcmp(cmd, file_cmd) == 0) {
-            fd = open_file(arg);
+            mode = open_file(&fd, arg);
         }
         else if (strcmp(cmd, search_cmd) == 0) {
             if (fd == 0) {
@@ -244,13 +286,15 @@ int main(int argc, char** argv) {
     int opt = 0;
     char* file_name = NULL;
     size_t memory = to_memory_value(NULL);
+    int64_t position = -1;
+    open_mode mode = OM_EXIST;
 
     if (argc == 1) {
         interactive_mode();
     }
 
     int fd = 0;
-    while ((opt = getopt(argc, argv, "m:f:s:S:h")) != -1) {
+    while ((opt = getopt(argc, argv, "m:f:s:S:p:a:h")) != -1) {
         switch (opt) {
             case 'm':
                 memory = to_memory_value(optarg);
@@ -263,7 +307,7 @@ int main(int argc, char** argv) {
                 if (fd != 0) {
                     close_file(fd);
                 }
-                fd = open_file(file_name);
+                mode = open_file(&fd, file_name);
                 if (fd == 0) {
                     exit(EXIT_FAILURE);
                 }
@@ -275,6 +319,23 @@ int main(int argc, char** argv) {
             case 'S':
                 check_fd(fd);
                 find(fd, optarg, FT_CASE_IGNORE, memory);
+                break;
+            case 'p':
+                check_fd(fd);
+                position = get_position(fd, optarg);
+                if (position < 0) {
+                    close_file(fd);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'a':
+                check_fd(fd);
+                if (position < 0) {
+                    printf("Position not set!\n");
+                    close_file(fd);
+                    exit(EXIT_FAILURE);
+                }
+                add(fd, mode, position, optarg);
                 break;
             case 'h':
                 printf(help_message);

@@ -158,42 +158,44 @@ static const char* help_message_interactive_mode =
     "f file_name        set file name for operations\n"
     "s search_pattern   search in file with case sens\n"
     "S search_pattern   search in file with ignore case\n"
+    "p position         set position in file for add and remove commands\n"
+    "a                  add data from standard input\n"
     "h                  print this message\n";
 
-static void read_strings(char* cmd, char* arg, size_t size) {
-    size_t index = 0;
+static size_t read_cmd(char* buffer, size_t size) {
     int c = 0;
+    size_t index = 0;
+
     while ((c = getchar()) && c != EOF && c != ' ' && c != '\n' && index < size) {
-        cmd[index] = (char)c;
+        buffer[index] = (char)c;
         index++;
     }
 
-    cmd[index] = '\0';
-
-    if (c == '\n') {
-        return;
-    }
-    else if (c == EOF) {
-        cmd[size - 1] = 'E';
-        return;
-    }
-
-    index = 0;
-    c = 0;
-    while ((c = getchar()) && c != EOF && c != '\n' && index < size) {
-        if (c == ' ') {
-            printf("Cannot read argument!\n");
-            return;
-        }
-        arg[index] = (char)c;
-        index++;
-    }
-
-    arg[index] = '\0';
+    buffer[index] = '\0';
 
     if (c == EOF) {
-        arg[size - 1] = 'E';
+        buffer[size - 1] = 'E';
     }
+
+    return index;
+}
+
+static size_t read_arg(char* buffer, size_t size) {
+    int c = 0;
+    size_t index = 0;
+
+    while((c = getchar()) && c != EOF && c != '\n' && index < size) {
+        buffer[index] = (char)c;
+        index++;
+    }
+
+    buffer[index] = '\0';
+
+    if (c == EOF) {
+        buffer[size - 1] = 'E';
+    }
+
+    return index;
 }
 
 static void interactive_mode(void) {
@@ -203,6 +205,8 @@ static void interactive_mode(void) {
     const char* file_cmd = "f";
     const char* search_cmd = "s";
     const char* search_ignore_case_cmd = "S";
+    const char* position_cmd = "p";
+    const char* add_cmd = "a";
     const size_t BUFFER_SIZE = to_memory_value(NULL);
 
     char cmd[BUFFER_SIZE];
@@ -211,15 +215,13 @@ static void interactive_mode(void) {
     size_t arg_size = 0;
     size_t memory = to_memory_value(NULL);
     int fd = 0;
+    int64_t position = -1;
     open_mode mode = OM_EXIST;
 
     printf("Simple text editor for lab04. Don't use it!\n");
     while (1) {
         printf(">> ");
-        read_strings(cmd, arg, BUFFER_SIZE);
-
-        cmd_size = strlen(cmd);
-        arg_size = strlen(arg);
+        cmd_size = read_cmd(cmd, BUFFER_SIZE);
 
         if (cmd_size == 0) {
             if (cmd[BUFFER_SIZE - 1] == 'E') {
@@ -238,46 +240,73 @@ static void interactive_mode(void) {
             printf("%s", help_message_interactive_mode);
             continue;
         }
+        else if (strcmp(cmd, add_cmd) == 0) {
+            if (fd == 0) {
+                printf("File not set!\n");
+                continue;
+            }
+            if (position < 0) {
+                printf("Position not set!\n");
+                continue;
+            }
+
+            add_from_stdin(fd, mode, position);
+            position = -1;
+        }
         else if (strcmp(cmd, quit_cmd) == 0) {
             if (fd != 0) {
                 close_file(fd);
             }
             exit(EXIT_SUCCESS);
         }
-        else if (arg_size == 0) {
-            if (arg[BUFFER_SIZE - 1] == 'E') {
-                if (fd != 0) {
-                    close_file(fd);
+        else {
+            arg_size = read_arg(arg, BUFFER_SIZE);
+
+            if (arg_size == 0) {
+                if (arg[BUFFER_SIZE - 1] == 'E') {
+                    if (fd != 0) {
+                        close_file(fd);
+                    }
+                    exit(EXIT_SUCCESS);
                 }
-                exit(EXIT_SUCCESS);
+                else {
+                    printf("Argument not set!\n");
+                }
+                continue;
+            }
+            else if (strcmp(cmd, memory_cmd) == 0) {
+                memory = to_memory_value(arg);
+            }
+            else if (strcmp(cmd, file_cmd) == 0) {
+                mode = open_file(&fd, arg);
+            }
+            else if (strcmp(cmd, search_cmd) == 0) {
+                if (fd == 0) {
+                    printf("File not set!\n");
+                    continue;
+                }
+                find(fd, arg, FT_CASE_SENS, memory);
+            }
+            else if (strcmp(cmd, search_ignore_case_cmd) == 0) {
+                if (fd == 0) {
+                    printf("File not set!\n");
+                    continue;
+                }
+                find(fd, arg, FT_CASE_IGNORE, memory);
+            }
+            else if (strcmp(cmd, position_cmd) == 0) {
+                if (fd == 0) {
+                    printf("File not set!\n");
+                    continue;
+                }
+                position = get_position(fd, arg);
+                if (position < 0) {
+                    continue;
+                }
             }
             else {
-                printf("Argument not set!\n");
+                printf("Unknown command! Try h for help.\n");
             }
-            continue;
-        }
-        else if (strcmp(cmd, memory_cmd) == 0) {
-            memory = to_memory_value(arg);
-        }
-        else if (strcmp(cmd, file_cmd) == 0) {
-            mode = open_file(&fd, arg);
-        }
-        else if (strcmp(cmd, search_cmd) == 0) {
-            if (fd == 0) {
-                printf("File not set!\n");
-                continue;
-            }
-            find(fd, arg, FT_CASE_SENS, memory);
-        }
-        else if (strcmp(cmd, search_ignore_case_cmd) == 0) {
-            if (fd == 0) {
-                printf("File not set!\n");
-                continue;
-            }
-            find(fd, arg, FT_CASE_IGNORE, memory);
-        }
-        else {
-            printf("Unknown command! Try h for help.\n");
         }
     }
 }
@@ -335,7 +364,7 @@ int main(int argc, char** argv) {
                     close_file(fd);
                     exit(EXIT_FAILURE);
                 }
-                add(fd, mode, position, optarg);
+            add(fd, mode, position, optarg);
                 break;
             case 'h':
                 printf(help_message);

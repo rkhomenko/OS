@@ -2,7 +2,7 @@ LAB_BUILD_DIR=$(BUILD_DIR)/lab04
 INCLUDE_DIR=./include
 BINARY=$(LAB_BUILD_DIR)/lab04
 
-CFLAGS=-c -std=c99 -Wall -Wextra -pedantic-errors -I$(INCLUDE_DIR)
+CFLAGS=-c -std=gnu99 -Wall -Wextra -pedantic-errors -I$(INCLUDE_DIR)
 LDFLAGS=
 
 ifeq ($(BUILD_TYPE), release)

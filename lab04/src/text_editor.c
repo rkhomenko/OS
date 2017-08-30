@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include <text_editor.h>
 
@@ -146,14 +147,76 @@ void find(int fd, const char* needle, find_type ft, size_t map_size) {
     free(zblocks);
 }
 
-static void add_to_created_file(int fd, int64_t pos, const char* what) {
-    const char space = ' ';
+static int open_temp_file(char* path) {
+    const char template[] = "simple_text_editor_temp_XXXXXX";
 
-    for (int64_t i = 0; i < pos - 1; i++) {
-        write(fd, &space, 1);
+    strcpy(path, template);
+
+    int fd = mkstemp(path);
+    if (fd < 0) {
+       perror("Cannot open temp file");
     }
 
+    return fd;
+}
+
+static void copy_data_from_file(int from_fd, int to_fd, size_t size) {
+    const size_t BUFFER_SIZE = 4096;
+    char buffer[BUFFER_SIZE];
+    size_t readed = 0;
+    size_t total = 0;
+    size_t needed = (size < BUFFER_SIZE) ? size : BUFFER_SIZE;
+
+    while ((readed = read(from_fd, buffer, needed)) && total < size) {
+        write(to_fd, buffer, readed);
+        total += readed;
+    }
+}
+
+static void copy_all_data_from_file(int from_fd, int to_fd) {
+    const size_t BUFFER_SIZE = 4096;
+    char buffer[BUFFER_SIZE];
+    size_t readed = 0;
+
+    do {
+        readed = read(from_fd, buffer, BUFFER_SIZE);
+        write(to_fd, buffer, readed);
+    } while (readed != 0);
+}
+
+static void add_spaces(int fd, int64_t count) {
+    const char space = ' ';
+
+    for (int64_t i = 0; i < count; i++) {
+        write(fd, &space, 1);
+    }
+}
+
+static void add_to_created_file(int fd, int64_t pos, const char* what) {
+    add_spaces(fd, pos - 1);
     write(fd, what, strlen(what));
+}
+
+static void add_to_existed_file(int fd, int64_t pos, const char* what) {
+    char path[PATH_MAX];
+    int temp_fd = open_temp_file(path);
+
+    lseek(fd, 0, SEEK_SET);
+
+    pos = (pos == 0) ? 1 : pos;
+    copy_data_from_file(fd, temp_fd, pos - 1);
+
+    write(temp_fd, what, strlen(what));
+
+    copy_all_data_from_file(fd, temp_fd);
+
+    lseek(fd, 0, SEEK_SET);
+    lseek(temp_fd, 0, SEEK_SET);
+
+    copy_all_data_from_file(temp_fd, fd);
+
+    close(temp_fd);
+    unlink(path);
 }
 
 void add(int fd, open_mode mode, int64_t pos, const char* what) {
@@ -162,6 +225,45 @@ void add(int fd, open_mode mode, int64_t pos, const char* what) {
             add_to_created_file(fd, pos, what);
             break;
         case OM_EXIST:
+            add_to_existed_file(fd, pos, what);
+            break;
+    }
+}
+
+static void add_to_created_file_from_stdin(int fd, int64_t pos) {
+    add_spaces(fd, pos);
+    copy_all_data_from_file(STDIN_FILENO, fd);
+}
+
+static void add_to_existed_file_from_stdin(int fd, int64_t pos) {
+    char path[PATH_MAX];
+    int temp_fd = open_temp_file(path);
+
+    lseek(fd, SEEK_SET, 0);
+
+    pos = (pos == 0) ? 1 : pos;
+    copy_data_from_file(fd, temp_fd, pos - 1);
+
+    copy_all_data_from_file(STDIN_FILENO, temp_fd);
+
+    copy_all_data_from_file(fd, temp_fd);
+
+    lseek(fd, 0, SEEK_SET);
+    lseek(temp_fd, 0, SEEK_SET);
+
+    copy_all_data_from_file(temp_fd, fd);
+
+    close(temp_fd);
+    unlink(path);
+}
+
+void add_from_stdin(int fd, open_mode mode, int64_t pos) {
+    switch (mode) {
+        case OM_CREAT:
+            add_to_created_file_from_stdin(fd, pos);
+            break;
+        case OM_EXIST:
+            add_to_existed_file_from_stdin(fd, pos);
             break;
     }
 }

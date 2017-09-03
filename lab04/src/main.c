@@ -198,6 +198,14 @@ static size_t read_arg(char* buffer, size_t size) {
     return index;
 }
 
+static int fd = 0;
+
+void close_file_at_exit(void) {
+    if (fd != 0) {
+        close_file(fd);
+    }
+}
+
 static void interactive_mode(void) {
     const char* help_cmd = "h";
     const char* quit_cmd = "q";
@@ -214,7 +222,6 @@ static void interactive_mode(void) {
     size_t cmd_size = 0;
     size_t arg_size = 0;
     size_t memory = to_memory_value(NULL);
-    int fd = 0;
     int64_t position = -1;
     open_mode mode = OM_EXIST;
 
@@ -225,9 +232,6 @@ static void interactive_mode(void) {
 
         if (cmd_size == 0) {
             if (cmd[BUFFER_SIZE - 1] == 'E') {
-                if (fd != 0) {
-                    close_file(fd);
-                }
                 exit(EXIT_SUCCESS);
             }
             else {
@@ -254,9 +258,6 @@ static void interactive_mode(void) {
             position = -1;
         }
         else if (strcmp(cmd, quit_cmd) == 0) {
-            if (fd != 0) {
-                close_file(fd);
-            }
             exit(EXIT_SUCCESS);
         }
         else {
@@ -264,9 +265,6 @@ static void interactive_mode(void) {
 
             if (arg_size == 0) {
                 if (arg[BUFFER_SIZE - 1] == 'E') {
-                    if (fd != 0) {
-                        close_file(fd);
-                    }
                     exit(EXIT_SUCCESS);
                 }
                 else {
@@ -278,6 +276,9 @@ static void interactive_mode(void) {
                 memory = to_memory_value(arg);
             }
             else if (strcmp(cmd, file_cmd) == 0) {
+                if (fd != 0) {
+                    close_file(fd);
+                }
                 mode = open_file(&fd, arg);
             }
             else if (strcmp(cmd, search_cmd) == 0) {
@@ -318,11 +319,12 @@ int main(int argc, char** argv) {
     int64_t position = -1;
     open_mode mode = OM_EXIST;
 
+    atexit(close_file_at_exit);
+
     if (argc == 1) {
         interactive_mode();
     }
 
-    int fd = 0;
     while ((opt = getopt(argc, argv, "m:f:s:S:p:a:h")) != -1) {
         switch (opt) {
             case 'm':
@@ -353,7 +355,6 @@ int main(int argc, char** argv) {
                 check_fd(fd);
                 position = get_position(fd, optarg);
                 if (position < 0) {
-                    close_file(fd);
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -361,7 +362,6 @@ int main(int argc, char** argv) {
                 check_fd(fd);
                 if (position < 0) {
                     printf("Position not set!\n");
-                    close_file(fd);
                     exit(EXIT_FAILURE);
                 }
             add(fd, mode, position, optarg);
@@ -371,9 +371,5 @@ int main(int argc, char** argv) {
                 exit(EXIT_SUCCESS);
                 break;
         }
-    }
-
-    if (fd != 0) {
-        close_file(fd);
     }
 }

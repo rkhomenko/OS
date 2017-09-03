@@ -20,5 +20,6 @@ size_t get_file_size(int fd);
 void find(int fd, const char* needle, find_type ft, size_t map_size);
 void add(int fd, open_mode mode, int64_t pos, const char* what);
 void add_from_stdin(int fd, open_mode mode, int64_t pos);
+void remove_chars(int fd, open_mode mode, int64_t pos, int64_t lenght);
 
 #endif

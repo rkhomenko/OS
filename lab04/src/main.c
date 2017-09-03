@@ -206,6 +206,14 @@ void close_file_at_exit(void) {
     }
 }
 
+#define CHECK_FD(fd) \
+    { \
+        if (fd == 0) { \
+            printf("File not set!\n"); \
+            continue; \
+        } \
+    }
+
 static void interactive_mode(void) {
     const char* help_cmd = "h";
     const char* quit_cmd = "q";
@@ -245,10 +253,7 @@ static void interactive_mode(void) {
             continue;
         }
         else if (strcmp(cmd, add_cmd) == 0) {
-            if (fd == 0) {
-                printf("File not set!\n");
-                continue;
-            }
+            CHECK_FD(fd);
             if (position < 0) {
                 printf("Position not set!\n");
                 continue;
@@ -282,24 +287,15 @@ static void interactive_mode(void) {
                 mode = open_file(&fd, arg);
             }
             else if (strcmp(cmd, search_cmd) == 0) {
-                if (fd == 0) {
-                    printf("File not set!\n");
-                    continue;
-                }
+                CHECK_FD(fd);
                 find(fd, arg, FT_CASE_SENS, memory);
             }
             else if (strcmp(cmd, search_ignore_case_cmd) == 0) {
-                if (fd == 0) {
-                    printf("File not set!\n");
-                    continue;
-                }
+                CHECK_FD(fd);
                 find(fd, arg, FT_CASE_IGNORE, memory);
             }
             else if (strcmp(cmd, position_cmd) == 0) {
-                if (fd == 0) {
-                    printf("File not set!\n");
-                    continue;
-                }
+                CHECK_FD(fd);
                 position = get_position(fd, arg);
                 if (position < 0) {
                     continue;
@@ -311,6 +307,8 @@ static void interactive_mode(void) {
         }
     }
 }
+
+#undef CHECK_FD
 
 int main(int argc, char** argv) {
     int opt = 0;

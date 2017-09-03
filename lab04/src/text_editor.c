@@ -184,16 +184,7 @@ static void copy_all_data_from_file(int from_fd, int to_fd) {
     } while (readed != 0);
 }
 
-static void add_spaces(int fd, int64_t count) {
-    const char space = ' ';
-
-    for (int64_t i = 0; i < count; i++) {
-        write(fd, &space, 1);
-    }
-}
-
-static void add_to_created_file(int fd, int64_t pos, const char* what) {
-    add_spaces(fd, pos - 1);
+static void add_to_created_file(int fd, const char* what) {
     write(fd, what, strlen(what));
 }
 
@@ -220,9 +211,10 @@ static void add_to_existed_file(int fd, int64_t pos, const char* what) {
 }
 
 void add(int fd, open_mode mode, int64_t pos, const char* what) {
+    lseek(fd, 0, SEEK_SET);
     switch (mode) {
         case OM_CREAT:
-            add_to_created_file(fd, pos, what);
+            add_to_created_file(fd, what);
             break;
         case OM_EXIST:
             add_to_existed_file(fd, pos, what);
@@ -230,8 +222,8 @@ void add(int fd, open_mode mode, int64_t pos, const char* what) {
     }
 }
 
-static void add_to_created_file_from_stdin(int fd, int64_t pos) {
-    add_spaces(fd, pos);
+static void add_to_created_file_from_stdin(int fd) {
+    lseek(fd, 0, SEEK_SET);
     copy_all_data_from_file(STDIN_FILENO, fd);
 }
 
@@ -241,7 +233,6 @@ static void add_to_existed_file_from_stdin(int fd, int64_t pos) {
 
     lseek(fd, SEEK_SET, 0);
 
-    pos = (pos == 0) ? 1 : pos;
     copy_data_from_file(fd, temp_fd, pos - 1);
 
     copy_all_data_from_file(STDIN_FILENO, temp_fd);
@@ -260,10 +251,33 @@ static void add_to_existed_file_from_stdin(int fd, int64_t pos) {
 void add_from_stdin(int fd, open_mode mode, int64_t pos) {
     switch (mode) {
         case OM_CREAT:
-            add_to_created_file_from_stdin(fd, pos);
+            add_to_created_file_from_stdin(fd);
             break;
         case OM_EXIST:
             add_to_existed_file_from_stdin(fd, pos);
             break;
     }
+}
+
+void remove_chars(int fd, int64_t pos, int64_t lenght) {
+    char path[PATH_MAX];
+    int temp_fd = open_temp_file(path);
+
+    lseek(fd, 0, SEEK_SET);
+
+    copy_data_from_file(fd, temp_fd, pos - 1);
+
+    lseek(fd, pos + lenght - 1, SEEK_SET);
+
+    copy_all_data_from_file(fd, temp_fd);
+
+    ftruncate(fd, get_file_size(fd) - lenght - 1);
+
+    lseek(fd, 0, SEEK_SET);
+    lseek(temp_fd, 0, SEEK_SET);
+
+    copy_all_data_from_file(temp_fd, fd);
+
+    close(temp_fd);
+    unlink(path);
 }

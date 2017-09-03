@@ -126,14 +126,20 @@ static size_t to_memory_value(const char* str) {
 
 static int64_t get_position(int fd, const char* str) {
     const char* msg = "Bad position value!";
+    const size_t SIZE = get_file_size(fd);
     int64_t pos = to_int(str, msg);
 
-    if (pos < 0) {
+    if (pos <= 0) {
         printf("%s\n", msg);
         return pos;
     }
 
-    if (get_file_size(fd) != 0 && pos > (int64_t)get_file_size(fd)) {
+    if (SIZE == 0) {
+        printf("WARNING! File is empty. Position set at the beginig of the file!\n");
+        return 1;
+    }
+
+    if (pos > (int64_t)get_file_size(fd)) {
         printf("Bad position range!\n");
         return -1;
     }
@@ -150,6 +156,7 @@ static const char* help_message =
     "-S\tsearch in file with ignore case\n"
     "-p\tset file position\n"
     "-a\tadd text to position\n"
+    "-d\tdelete n chars from position\n"
     "-h\tprint this message and exit\n";
 
 static const char* help_message_interactive_mode =
@@ -160,6 +167,7 @@ static const char* help_message_interactive_mode =
     "S search_pattern   search in file with ignore case\n"
     "p position         set position in file for add and remove commands\n"
     "a                  add data from standard input\n"
+    "d count            delete count chars from position\n"
     "h                  print this message\n";
 
 static size_t read_cmd(char* buffer, size_t size) {
@@ -214,6 +222,9 @@ void close_file_at_exit(void) {
         } \
     }
 
+#define IS_EQUAL(s1, s2) \
+    (strcmp(s1, s2) == 0)
+
 static void interactive_mode(void) {
     const char* help_cmd = "h";
     const char* quit_cmd = "q";
@@ -223,6 +234,7 @@ static void interactive_mode(void) {
     const char* search_ignore_case_cmd = "S";
     const char* position_cmd = "p";
     const char* add_cmd = "a";
+    const char* delete_cmd = "d";
     const size_t BUFFER_SIZE = to_memory_value(NULL);
 
     char cmd[BUFFER_SIZE];
@@ -231,6 +243,7 @@ static void interactive_mode(void) {
     size_t arg_size = 0;
     size_t memory = to_memory_value(NULL);
     int64_t position = -1;
+    int64_t count = -1;
     open_mode mode = OM_EXIST;
 
     printf("Simple text editor for lab04. Don't use it!\n");
@@ -248,11 +261,11 @@ static void interactive_mode(void) {
             continue;
         }
 
-        if (strcmp(cmd, help_cmd) == 0) {
+        if (IS_EQUAL(cmd, help_cmd)) {
             printf("%s", help_message_interactive_mode);
             continue;
         }
-        else if (strcmp(cmd, add_cmd) == 0) {
+        else if (IS_EQUAL(cmd, add_cmd)) {
             CHECK_FD(fd);
             if (position < 0) {
                 printf("Position not set!\n");
@@ -262,7 +275,7 @@ static void interactive_mode(void) {
             add_from_stdin(fd, mode, position);
             position = -1;
         }
-        else if (strcmp(cmd, quit_cmd) == 0) {
+        else if (IS_EQUAL(cmd, quit_cmd)) {
             exit(EXIT_SUCCESS);
         }
         else {
@@ -277,29 +290,46 @@ static void interactive_mode(void) {
                 }
                 continue;
             }
-            else if (strcmp(cmd, memory_cmd) == 0) {
+            else if (IS_EQUAL(cmd, memory_cmd)) {
                 memory = to_memory_value(arg);
             }
-            else if (strcmp(cmd, file_cmd) == 0) {
+            else if (IS_EQUAL(cmd, file_cmd)) {
                 if (fd != 0) {
                     close_file(fd);
                 }
                 mode = open_file(&fd, arg);
             }
-            else if (strcmp(cmd, search_cmd) == 0) {
+            else if (IS_EQUAL(cmd, search_cmd)) {
                 CHECK_FD(fd);
                 find(fd, arg, FT_CASE_SENS, memory);
             }
-            else if (strcmp(cmd, search_ignore_case_cmd) == 0) {
+            else if (IS_EQUAL(cmd, search_ignore_case_cmd)) {
                 CHECK_FD(fd);
                 find(fd, arg, FT_CASE_IGNORE, memory);
             }
-            else if (strcmp(cmd, position_cmd) == 0) {
+            else if (IS_EQUAL(cmd, position_cmd)) {
                 CHECK_FD(fd);
                 position = get_position(fd, arg);
                 if (position < 0) {
                     continue;
                 }
+            }
+            else if (IS_EQUAL(cmd, delete_cmd)) {
+                CHECK_FD(fd);
+                if (position < 0) {
+                    printf("Position not set!\n");
+                    continue;
+                }
+                count = to_int(arg, "Bad chars number!");
+                if (count < 0) {
+                    continue;
+                }
+                int64_t file_size = get_file_size(fd);
+                if (file_size == 0) {
+                    continue;
+                }
+                count = (count + position > file_size) ? file_size - position : count;
+                remove_chars(fd, position, count);
             }
             else {
                 printf("Unknown command! Try h for help.\n");
@@ -309,12 +339,14 @@ static void interactive_mode(void) {
 }
 
 #undef CHECK_FD
+#undef IS_EQUAL
 
 int main(int argc, char** argv) {
     int opt = 0;
     char* file_name = NULL;
     size_t memory = to_memory_value(NULL);
     int64_t position = -1;
+    int64_t count = -1;
     open_mode mode = OM_EXIST;
 
     atexit(close_file_at_exit);
@@ -323,7 +355,7 @@ int main(int argc, char** argv) {
         interactive_mode();
     }
 
-    while ((opt = getopt(argc, argv, "m:f:s:S:p:a:h")) != -1) {
+    while ((opt = getopt(argc, argv, "m:f:s:S:p:a:d:h")) != -1) {
         switch (opt) {
             case 'm':
                 memory = to_memory_value(optarg);
@@ -362,7 +394,25 @@ int main(int argc, char** argv) {
                     printf("Position not set!\n");
                     exit(EXIT_FAILURE);
                 }
-            add(fd, mode, position, optarg);
+                add(fd, mode, position, optarg);
+                break;
+            case 'd':
+                check_fd(fd);
+                if (position < 0) {
+                    printf("Position not set!\n");
+                    exit(EXIT_FAILURE);
+                }
+                count = to_int(optarg, "Bad chars number!");
+                if (count < 0) {
+                    exit(EXIT_FAILURE);
+                }
+                int64_t file_size = (int64_t)get_file_size(fd);
+                if (file_size == 0) {
+                    exit(EXIT_SUCCESS);
+                }
+                count = (position + count > file_size) ? file_size - position : count;
+                remove_chars(fd, position, count);
+                count = -1;
                 break;
             case 'h':
                 printf(help_message);

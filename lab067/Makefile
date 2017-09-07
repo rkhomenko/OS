@@ -2,12 +2,12 @@ LAB_BUILD_DIR=$(BUILD_DIR)/lab067
 INCLUDE_DIR=./include
 BINARY=$(LAB_BUILD_DIR)/lab067
 LIBZMQ_BUILD_DIR=$(LAB_BUILD_DIR)/libzmq
-LIBZMQ=$(LIBZMQ_BUILD_DIRL)/lib/libzmq.so
+LIBZMQ=$(LIBZMQ_BUILD_DIR)/lib/libzmq.so
 
 CURRENT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 CFLAGS=-c -std=c99 -Wall -Wextra -pedantic-errors -I$(INCLUDE_DIR)
-LDFLAGS=
+LDFLAGS=-L$(LIBZMQ_BUILD_DIR)/lib -lzmq
 
 ifeq ($(BUILD_TYPE), release)
 	CFLAGS:=$(CFLAGS) -O2
@@ -17,13 +17,13 @@ ifeq ($(BUILD_TYPE), debug)
 	CFLAGS:=$(CFLAGS) -g -Og
 endif
 
-SOURCES=src/main.c
-OBJECTS=$(patsubst src/%.c, $(LAB_BUILD_DIR)/%.o,$(SOURCES))
+SOURCES=program/src/main.c
+OBJECTS=$(patsubst program/src/%.c, $(LAB_BUILD_DIR)/%.o,$(SOURCES))
 
 $(BINARY): dir $(LIBZMQ) $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $(BINARY)
 
-$(OBJECTS): $(LAB_BUILD_DIR)/%.o: src/%.c
+$(OBJECTS): $(LAB_BUILD_DIR)/%.o: program/src/%.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(LIBZMQ):
